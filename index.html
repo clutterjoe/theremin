@@ -59,11 +59,11 @@ div.note-info {
   background-color:#fff;
 }
 div.black-key {
-  background-color:#222;
+  background-color:#666;
   color:#fff;
 }
 div.grey-key {
-  background-color:#444;
+  background-color:#999;
   color:#fff;
 }
 
@@ -243,10 +243,12 @@ var scales = {
 
 var settings = {
   mute: false,
-  vibrato: false,
+  vibrato: true,
   tremelo: false,
-  tempo: 0,
-  display_notes: 'vertical',
+  tempo: {
+    dpm: 0,
+  },
+  displayNotes: 'vertical',
   key: 'A',
   scale: 'Chromatic',
   octave:{
@@ -254,6 +256,38 @@ var settings = {
     high:5
   }
 };
+
+
+var TempoThing = {
+  bpm: 120,
+  bpmRounded: 120,
+  count: 0,
+  msecsFirst: 0,
+  msecsPrevious: 0,
+  timeout: 2,
+  tapForBPM: function(e) {
+    var t = new Date();
+    var msecs = t.getTime();
+    if ((msecs - this.msecsPrevious) > 1000 * this.timeout) {
+      count = 0;
+      }
+
+    if (count == 0) {
+      this.msecsFirst = msecs;
+      count = 1;
+      }
+    else
+      {
+      bpmAvg = 60000 * count / (msecs - this.msecsFirst);
+      this.bpm = Math.round(bpmAvg * 100) / 100;
+      this.bpmRounded = Math.round(bpmAvg);
+      count++;
+      }
+    this.msecsPrevious = msecs;
+    return true;
+  }
+};
+
 
 function setNotes(key, scale) {
   var locScale = scales[scale];
@@ -309,11 +343,11 @@ function flattenPitches(key, scale, low, high) {
       }
     }
   }
-
   return activePitches;
 }
 
 function drawNotes() {
+
   winH = $(window).height() - 10;
   winW = $(window).width();
 
@@ -407,12 +441,30 @@ function drawNotes() {
     // set the volume
     vca.gain.value = vol;
 
-
     // update the display
     displayCurrentFrequency(display_note);
-    });
+  });
 
 }
+
+$(document).ready(function(){
+  var tempo = TempoThing;
+  $('body').keydown(function(e) {
+
+    var c = String.fromCharCode(e.which);
+
+    // Set the tempo.
+    if (c === 'T' || c === 't') {
+
+      tempo.tapForBPM(e);
+      settings.tempo.bpm = tempo.bpm;
+      $('#tempo_display').html(settings.tempo.bpm);
+
+    }
+  });
+
+});
+
 
 function displayCurrentFrequency(pitch) {
   $('.current-pitch').html(pitch);
